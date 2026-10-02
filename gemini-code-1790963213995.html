@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>雙頻道數位示波器與運算放大器模擬器</title>
+  <style>
+    :root {
+      --bg-dark: #121820;
+      --panel-bg: #1c2533;
+      --panel-border: #2e3c54;
+      --screen-bg: #0a0f18;
+      --ch1-color: #f1c40f;
+      --ch2-color: #00d2ff;
+      --ch1-dim: rgba(241, 196, 15, 0.2);
+      --ch2-dim: rgba(0, 210, 255, 0.2);
+      --text-main: #e1e8f0;
+      --text-muted: #8a9ba8;
+      --accent: #27ae60;
+      --grid-color: rgba(0, 210, 255, 0.15);
+      --grid-sub: rgba(0, 210, 255, 0.05);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    header {
+      background: #18202c;
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    h1 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #38ef7d;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .main-container {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 50px);
+      overflow: hidden;
+    }
+
+    /* 示波器螢幕區域 */
+    .screen-container {
+      flex: 1;
+      background-color: var(--screen-bg);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--panel-border);
+    }
+
+    .screen-header {
+      height: 36px;
+      background: rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 15px;
+      font-size: 0.85rem;
+      font-family: monospace;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .status-badge {
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-weight: bold;
+      font-size: 0.75rem;
+    }
+    .status-trig { background: #27ae60; color: #fff; }
+    .status-auto { background: #2980b9; color: #fff; }
+    .status-stop { background: #e74c3c; color: #fff; }
+
+    canvas {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* 控制面板區域 */
+    .control-panel {
+      width: 420px;
+      background-color: var(--panel-bg);
+      overflow-y: auto;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .panel-section {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      padding: 12px;
+    }
+
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--panel-border);
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 0.8rem;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active.ch1 {
+      background: var(--ch1-dim);
+      border-color: var(--ch1-color);
+      color: var(--ch1-color);
+    }
+
+    .tab-btn.active.ch2 {
+      background: var(--ch2-dim);
+      border-color: var(--ch2-color);
+      color: var(--ch2-color);
+    }
+
+    .grid-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .input-group label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 5px;
+    }
+
+    input[type="number"], select {
+      background: #121820;
+      border: 1px solid var(--panel-border);
+      color: #fff;
+      padding: 6px 8px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      outline: none;
+      width: 100%;
+    }
+
+    input[type="number"]:focus, select:focus {
+      border-color: #38ef7d;
+    }
+
+    .unit-select {
+      width: 70px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: #38ef7d;
+    }
+
+    /* 按鈕樣式 */
+    .btn {
+      padding: 8px 12px;
+      background: #2c3e50;
+      border: 1px solid var(--panel-border);
+      color: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: #34495e;
+    }
+
+    .btn-primary {
+      background: #27ae60;
+      border-color: #27ae60;
+    }
+    .btn-primary:hover { background: #2ecc71; }
+
+    .btn-auto {
+      background: #8e44ad;
+      border-color: #8e44ad;
+      width: 100%;
+      padding: 10px;
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+    }
+    .btn-auto:hover { background: #9b59b6; }
+
+    /* 切換模組開關 */
+    .switch-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    /* 測量數據 Bar */
+    .measurements {
+      height: 40px;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      border-top: 1px solid var(--panel-border);
+      font-family: monospace;
+      font-size: 0.8rem;
+    }
+
+    .meas-item {
+      display: flex;
+      gap: 6px;
+    }
+    .meas-ch1 { color: var(--ch1-color); }
+    .meas-ch2 { color: var(--ch2-color); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>⚡ 高階雙頻道數位示波器 (Dual-CH Scope & Op-Amp Sim)</h1>
+    <div>
+      <button class="btn btn-primary" id="btnRunStop">RUN / STOP</button>
+    </div>
+  </header>
+
+  <div class="main-container">
+    <!-- 示波器畫面區域 -->
+    <div class="screen-container">
+      <div class="screen-header">
+        <div>
+          <span class="status-badge status-auto" id="trigStatus">AUTO</span>
+          <span style="margin-left: 10px;" id="dispTimeDiv">Time: 1.0 ms/div</span>
+        </div>
+        <div id="dispVoltsDiv">
+          <span style="color: var(--ch1-color);">CH1: 1.0 V/div</span> | 
+          <span style="color: var(--ch2-color);">CH2: 1.0 V/div</span>
+        </div>
+      </div>
+
+      <canvas id="scopeCanvas"></canvas>
+
+      <!-- 即時電壓與週期數據區 -->
+      <div class="measurements">
+        <div class="meas-item meas-ch1">
+          <span>CH1 Vpp: <b id="mCh1Vpp">0.00 V</b></span>
+          <span>Vrms: <b id="mCh1Vrms">0.00 V</b></span>
+          <span>Freq: <b id="mCh1Freq">1.00 kHz</b></span>
+        </div>
+        <div class="meas-item meas-ch2">
+          <span>CH2 Vpp: <b id="mCh2Vpp">0.00 V</b></span>
+          <span>Vrms: <b id="mCh2Vrms">0.00 V</b></span>
+          <span>Freq: <b id="mCh2Freq">1.00 kHz</b></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 控制面板 -->
+    <div class="control-panel">
+      
+      <button class="btn btn-auto" id="btnAutoSet">⚡ AUTO SET (自動設定檔位)</button>
+
+      <!-- 1. 信號源控制面板 (CH1 / CH2) -->
+      <div class="panel-section">
+        <div class="section-title">
+          <span>信號源設定 (Signal Generator)</span>
+        </div>
+
+        <div class="tabs">
+          <button class="tab-btn active ch2" id="tabCH2">CH2 信號設定</button>
+          <button class="tab-btn ch1" id="tabCH1">CH1 信號設定</button>
+        </div>
+
+        <div class="input-group">
+          <label>波形種類 (Waveform):</label>
+          <select id="sigWave">
+            <option value="sine">正弦波 (Sine)</option>
+            <option value="square">方波 (Square)</option>
+            <option value="triangle">三角波 (Triangle)</option>
+            <option value="sawtooth">鋸齒波 (Sawtooth)</option>
+            <option value="pulse">脈衝波 (Pulse)</option>
+            <option value="noise">雜訊 (Noise)</option>
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label>輸出電壓 (Peak-to-Peak Amplitude):</label>
+          <div class="input-row">
+            <input type="number" id="sigAmp" value="100" min="0.1" step="0.1">
+            <select class="unit-select" id="sigAmpUnit">
+              <option value="mV" selected>mV</option>
+              <option value="V">V</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-2col">
+          <div class="input-group">
+            <label>頻率 (Frequency):</label>
+            <div class="input-row">
+              <input type="number" id="sigFreq" value="1000" min="1">
+              <select class="unit-select" id="sigFreqUnit">
+                <option value="Hz">Hz</option>
+                <option value="kHz" selected>kHz</option>
+              </select>
+            </div>
+          </div>
+          <div class="input-group">
+            <label>直流偏置 (DC Offset V):</label>
+            <input type="number" id="sigOffset" value="0" step="0.1">
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. 運算放大器 (Op-Amp) 模擬器 -->
+      <div class="panel-section">
+        <div class="section-title">
+          <span>運算放大器模擬 (Op-Amp Circuit)</span>
+          <label class="switch-label">
+            <input type="checkbox" id="opampEnable"> 啟用 Op-Amp
+          </label>
+        </div>
+
+        <div class="grid-2col">
+          <div class="input-group">
+            <label>放大器架構 (Mode):</label>
+            <select id="opampType">
+              <option value="nonInverting">同相放大 (Non-Inverting)</option>
+              <option value="inverting">反相放大 (Inverting)</option>
+              <option value="comparator">比較器模式 (Comparator)</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label>增益 Gain ($A_v$):</label>
+            <input type="number" id="opampGainInput" value="10" min="0.1" max="1000" step="0.1">
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>增益微調滑桿: <span id="dispGain">10.0x</span></label>
+          <input type="range" id="opampGainSlider" min="0.1" max="100" step="0.1" value="10">
+        </div>
+
+        <div class="grid-2col">
+          <div class="input-group">
+            <label>正電源軌 (+Vcc):</label>
+            <input type="number" id="opampVcc" value="12" step="0.5">
+          </div>
+          <div class="input-group">
+            <label>負電源軌 (-Vee):</label>
+            <input type="number" id="opampVee" value="-12" step="0.5">
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. 示波器頻道軸向設定 -->
+      <div class="panel-section">
+        <div class="section-title">垂直與時間軸控制 (Vertical & Horizontal)</div>
+        
+        <div class="grid-2col">
+          <div class="input-group">
+            <label>CH1 Volts/Div:</label>
+            <select id="ch1VoltsDiv"></select>
+          </div>
+          <div class="input-group">
+            <label>CH2 Volts/Div:</label>
+            <select id="ch2VoltsDiv"></select>
+          </div>
+        </div>
+
+        <div class="grid-2col">
+          <div class="input-group">
+            <label>CH1 Y-Position:</label>
+            <input type="range" id="ch1Pos" min="-4" max="4" step="0.1" value="0">
+          </div>
+          <div class="input-group">
+            <label>CH2 Y-Position:</label>
+            <input type="range" id="ch2Pos" min="-4" max="4" step="0.1" value="0">
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>時間檔位 (Time/Div):</label>
+          <select id="timeDiv"></select>
+        </div>
+      </div>
+
+      <!-- 4. 觸發控制 (Trigger) -->
+      <div class="panel-section">
+        <div class="section-title">數位觸發系統 (Trigger System)</div>
+        <div class="grid-2col">
+          <div class="input-group">
+            <label>觸發來源 (Source):</label>
+            <select id="trigSource">
+              <option value="ch1">CH1 (黃色)</option>
+              <option value="ch2" selected>CH2 (藍色)</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label>邊緣觸發 (Edge):</label>
+            <select id="trigEdge">
+              <option value="rising">上升沿 (Rising)</option>
+              <option value="falling">下降沿 (Falling)</option>
+            </select>
+          </div>
+        </div>
+        <div class="input-group">
+          <label>觸發電位 (Trigger Level V): <span id="dispTrigLevel">0.00 V</span></label>
+          <input type="range" id="trigLevel" min="-10" max="10" step="0.05" value="0">
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // --- 電壓檔位與時間檔位選單選項 ---
+    const VOLTS_DIV_OPTIONS = [
+      { label: '1 mV/div', val: 0.001 },
+      { label: '2 mV/div', val: 0.002 },
+      { label: '5 mV/div', val: 0.005 },
+      { label: '10 mV/div', val: 0.010 },
+      { label: '20 mV/div', val: 0.020 },
+      { label: '50 mV/div', val: 0.050 },
+      { label: '100 mV/div', val: 0.100 },
+      { label: '200 mV/div', val: 0.200 },
+      { label: '500 mV/div', val: 0.500 },
+      { label: '1 V/div', val: 1.0 },
+      { label: '2 V/div', val: 2.0 },
+      { label: '5 V/div', val: 5.0 },
+      { label: '10 V/div', val: 10.0 }
+    ];
+
+    const TIME_DIV_OPTIONS = [
+      { label: '10 µs/div', val: 0.00001 },
+      { label: '50 µs/div', val: 0.00005 },
+      { label: '100 µs/div', val: 0.0001 },
+      { label: '500 µs/div', val: 0.0005 },
+      { label: '1 ms/div', val: 0.001 },
+      { label: '2 ms/div', val: 0.002 },
+      { label: '5 ms/div', val: 0.005 },
+      { label: '10 ms/div', val: 0.010 },
+      { label: '50 ms/div', val: 0.050 },
+      { label: '100 ms/div', val: 0.100 }
+    ];
+
+    // --- 全局狀態 State ---
+    let state = {
+      isRunging: true,
+      activeTab: 'ch2',
+      ch1: { wave: 'sine', amp: 0.1, freq: 1000, offset: 0, voltsDiv: 0.05, yPos: 0 },
+      ch2: { wave: 'sine', amp: 0.1, freq: 1000, offset: 0, voltsDiv: 0.05, yPos: 0 },
+      timeDiv: 0.0005,
+      opamp: { enabled: true, type: 'nonInverting', gain: 10, vcc: 12, vee: -12 },
+      trigger: { source: 'ch2', edge: 'rising', level: 0 }
+    };
+
+    // --- DOM 元素初始化 ---
+    const canvas = document.getElementById('scopeCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function populateSelects() {
+      const ch1Sel = document.getElementById('ch1VoltsDiv');
+      const ch2Sel = document.getElementById('ch2VoltsDiv');
+      const timeSel = document.getElementById('timeDiv');
+
+      VOLTS_DIV_OPTIONS.forEach((opt, idx) => {
+        ch1Sel.add(new Option(opt.label, opt.val));
+        ch2Sel.add(new Option(opt.label, opt.val));
+      });
+      TIME_DIV_OPTIONS.forEach(opt => timeSel.add(new Option(opt.label, opt.val)));
+
+      ch1Sel.selectedIndex = 6; // 100mV
+      ch2Sel.selectedIndex = 9; // 1V
+      timeSel.selectedIndex = 4; // 1ms
+    }
+
+    // --- 格式化電壓顯示 ---
+    function formatVoltageValue(v) {
+      if (Math.abs(v) < 0.001) return (v * 1e6).toFixed(1) + ' µV';
+      if (Math.abs(v) < 1) return (v * 1000).toFixed(1) + ' mV';
+      return v.toFixed(2) + ' V';
+    }
+
+    // --- 生成波形點位 ---
+    function generateSignal(t, config) {
+      const f = config.freq;
+      const A = config.amp / 2; // Peak amplitude
+      let val = 0;
+      const phase = (t * f) % 1;
+
+      switch (config.wave) {
+        case 'sine': val = Math.sin(2 * Math.PI * f * t); break;
+        case 'square': val = phase < 0.5 ? 1 : -1; break;
+        case 'triangle': val = phase < 0.5 ? (4 * phase - 1) : (3 - 4 * phase); break;
+        case 'sawtooth': val = 2 * phase - 1; break;
+        case 'pulse': val = phase < 0.2 ? 1 : -1; break;
+        case 'noise': val = (Math.random() * 2 - 1); break;
+      }
+      return val * A + config.offset;
+    }
+
+    // --- 繪製主繪圖迴圈 ---
+    let animFrame;
+    let phaseOffset = 0;
+
+    function draw() {
+      if (state.isRunging) phaseOffset += 0.0001;
+
+      const w = canvas.width = canvas.parentElement.clientWidth;
+      const h = canvas.height = canvas.parentElement.clientHeight;
+
+      // 繪製背景
+      ctx.fillStyle = '#0a0f18';
+      ctx.fillRect(0, 0, w, h);
+
+      // 網格 (10x8 divs)
+      const numXDivs = 10;
+      const numYDivs = 8;
+      const dx = w / numXDivs;
+      const dy = h / numYDivs;
+
+      ctx.strokeStyle = 'rgba(0, 210, 255, 0.15)';
+      ctx.lineWidth = 1;
+
+      // 縱向網格與 X 軸數值
+      ctx.fillStyle = '#6e84a3';
+      ctx.font = '10px monospace';
+      const totalTimeSpan = state.timeDiv * numXDivs;
+
+      for (let i = 0; i <= numXDivs; i++) {
+        let x = i * dx;
+        ctx.beginPath();
+        ctx.moveTo(x, 0); ctx.lineTo(x, h);
+        ctx.stroke();
+
+        let tVal = i * state.timeDiv;
+        let tStr = tVal < 0.001 ? (tVal * 1e6).toFixed(0) + 'µs' : (tVal * 1000).toFixed(1) + 'ms';
+        if (i < numXDivs) ctx.fillText(tStr, x + 3, h - 5);
+      }
+
+      // 橫向網格與 Y 軸電壓數值 (以 CH2 或 CH1 為參考)
+      const refVoltsDiv = state.activeTab === 'ch1' ? state.ch1.voltsDiv : state.ch2.voltsDiv;
+      for (let j = 0; j <= numYDivs; j++) {
+        let y = j * dy;
+        ctx.beginPath();
+        ctx.moveTo(0, y); ctx.lineTo(w, y);
+        ctx.stroke();
+
+        let voltVal = (numYDivs / 2 - j) * refVoltsDiv;
+        if (j > 0 && j < numYDivs) {
+          ctx.fillText(formatVoltageValue(voltVal), 5, y - 3);
+        }
+      }
+
+      // 中心軸加亮
+      ctx.strokeStyle = 'rgba(0, 210, 255, 0.4)';
+      ctx.beginPath();
+      ctx.moveTo(0, h/2); ctx.lineTo(w, h/2);
+      ctx.moveTo(w/2, 0); ctx.lineTo(w/2, h);
+      ctx.stroke();
+
+      // 計算波形資料點
+      const points = 800;
+      let ch1Data = [];
+      let ch2Data = [];
+
+      // 自動觸發對齊搜尋
+      let triggerOffsetTime = phaseOffset;
+      const trigSourceConfig = state.trigger.source === 'ch1' ? state.ch1 : state.ch2;
+      const dt = totalTimeSpan / points;
+
+      for (let i = 0; i < points; i++) {
+        let t = i * dt + triggerOffsetTime;
+        let v1 = generateSignal(t, state.ch1);
+        
+        let v2 = 0;
+        if (state.opamp.enabled) {
+          // Op-Amp 電路放大模擬
+          let gain = state.opamp.gain;
+          if (state.opamp.type === 'inverting') v2 = -v1 * gain;
+          else if (state.opamp.type === 'nonInverting') v2 = v1 * gain;
+          else if (state.opamp.type === 'comparator') v2 = v1 >= 0 ? state.opamp.vcc : state.opamp.vee;
+
+          // 飽和削頂 Saturation
+          if (v2 > state.opamp.vcc) v2 = state.opamp.vcc;
+          if (v2 < state.opamp.vee) v2 = state.opamp.vee;
+        } else {
+          v2 = generateSignal(t, state.ch2);
+        }
+
+        ch1Data.push(v1);
+        ch2Data.push(v2);
+      }
+
+      // 繪製波形函式
+      function drawWave(data, color, voltsDiv, yPos) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+
+        for (let i = 0; i < points; i++) {
+          let x = (i / points) * w;
+          let v = data[i];
+          // 轉換電壓至 Canvas 垂直 Y 座標
+          let y = h/2 - (v / voltsDiv) * dy - (yPos * dy);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+
+      // 繪製 CH1 與 CH2
+      drawWave(ch1Data, '#f1c40f', state.ch1.voltsDiv, state.ch1.yPos);
+      drawWave(ch2Data, '#00d2ff', state.ch2.voltsDiv, state.ch2.yPos);
+
+      // 即時測量計算 Peak-to-Peak & RMS
+      function updateMeas(data, prefix) {
+        let max = Math.max(...data);
+        let min = Math.min(...data);
+        let vpp = max - min;
+        let vrms = vpp / (2 * Math.SQRT2);
+
+        document.getElementById(prefix + 'Vpp').innerText = formatVoltageValue(vpp);
+        document.getElementById(prefix + 'Vrms').innerText = formatVoltageValue(vrms);
+      }
+
+      updateMeas(ch1Data, 'mCh1');
+      updateMeas(ch2Data, 'mCh2');
+
+      animFrame = requestAnimationFrame(draw);
+    }
+
+    // --- UI 控制項同步與事件綁定 ---
+    function initEvents() {
+      populateSelects();
+
+      // RUN/STOP
+      document.getElementById('btnRunStop').addEventListener('click', (e) => {
+        state.isRunging = !state.isRunging;
+        e.target.innerText = state.isRunging ? 'RUN / STOP' : 'PAUSED';
+        e.target.style.background = state.isRunging ? '#27ae60' : '#e74c3c';
+      });
+
+      // 信號源 CH1/CH2 切換頁籤
+      const tabCH1 = document.getElementById('tabCH1');
+      const tabCH2 = document.getElementById('tabCH2');
+
+      tabCH1.addEventListener('click', () => {
+        state.activeTab = 'ch1';
+        tabCH1.classList.add('active'); tabCH2.classList.remove('active');
+        syncSignalPanel();
+      });
+
+      tabCH2.addEventListener('click', () => {
+        state.activeTab = 'ch2';
+        tabCH2.classList.add('active'); tabCH1.classList.remove('active');
+        syncSignalPanel();
+      });
+
+      function syncSignalPanel() {
+        const conf = state[state.activeTab];
+        document.getElementById('sigWave').value = conf.wave;
+        
+        let displayAmp = conf.amp >= 1 ? conf.amp : conf.amp * 1000;
+        document.getElementById('sigAmp').value = displayAmp;
+        document.getElementById('sigAmpUnit').value = conf.amp >= 1 ? 'V' : 'mV';
+
+        let isKHz = conf.freq >= 1000;
+        document.getElementById('sigFreq').value = isKHz ? conf.freq / 1000 : conf.freq;
+        document.getElementById('sigFreqUnit').value = isKHz ? 'kHz' : 'Hz';
+
+        document.getElementById('sigOffset').value = conf.offset;
+      }
+
+      // 信號源控制變更
+      function updateSignalConfig() {
+        const conf = state[state.activeTab];
+        conf.wave = document.getElementById('sigWave').value;
+
+        let rawAmp = parseFloat(document.getElementById('sigAmp').value) || 0;
+        let unitAmp = document.getElementById('sigAmpUnit').value;
+        conf.amp = unitAmp === 'mV' ? rawAmp / 1000 : rawAmp;
+
+        let rawFreq = parseFloat(document.getElementById('sigFreq').value) || 1;
+        let unitFreq = document.getElementById('sigFreqUnit').value;
+        conf.freq = unitFreq === 'kHz' ? rawFreq * 1000 : rawFreq;
+
+        conf.offset = parseFloat(document.getElementById('sigOffset').value) || 0;
+
+        document.getElementById('m' + state.activeTab.toUpperCase() + 'Freq').innerText = 
+          unitFreq === 'kHz' ? rawFreq.toFixed(2) + ' kHz' : rawFreq + ' Hz';
+      }
+
+      ['sigWave', 'sigAmp', 'sigAmpUnit', 'sigFreq', 'sigFreqUnit', 'sigOffset'].forEach(id => {
+        document.getElementById(id).addEventListener('input', updateSignalConfig);
+      });
+
+      // Op-Amp 控制項
+      document.getElementById('opampEnable').addEventListener('change', (e) => {
+        state.opamp.enabled = e.target.checked;
+      });
+
+      document.getElementById('opampType').addEventListener('change', (e) => {
+        state.opamp.type = e.target.value;
+      });
+
+      const gainInput = document.getElementById('opampGainInput');
+      const gainSlider = document.getElementById('opampGainSlider');
+      const dispGain = document.getElementById('dispGain');
+
+      gainInput.addEventListener('input', (e) => {
+        let val = parseFloat(e.target.value) || 1;
+        state.opamp.gain = val;
+        gainSlider.value = val;
+        dispGain.innerText = val.toFixed(1) + 'x';
+      });
+
+      gainSlider.addEventListener('input', (e) => {
+        let val = parseFloat(e.target.value);
+        state.opamp.gain = val;
+        gainInput.value = val;
+        dispGain.innerText = val.toFixed(1) + 'x';
+      });
+
+      // 垂直與時間檔位
+      document.getElementById('ch1VoltsDiv').addEventListener('change', (e) => {
+        state.ch1.voltsDiv = parseFloat(e.target.value);
+      });
+      document.getElementById('ch2VoltsDiv').addEventListener('change', (e) => {
+        state.ch2.voltsDiv = parseFloat(e.target.value);
+      });
+      document.getElementById('ch1Pos').addEventListener('input', (e) => {
+        state.ch1.yPos = parseFloat(e.target.value);
+      });
+      document.getElementById('ch2Pos').addEventListener('input', (e) => {
+        state.ch2.yPos = parseFloat(e.target.value);
+      });
+      document.getElementById('timeDiv').addEventListener('change', (e) => {
+        state.timeDiv = parseFloat(e.target.value);
+      });
+
+      // AUTO SET 自動檔位調整
+      document.getElementById('btnAutoSet').addEventListener('click', () => {
+        // 自動調整 CH1 & CH2 檔位
+        state.ch1.voltsDiv = state.ch1.amp <= 0.2 ? 0.05 : 1.0;
+        state.ch2.voltsDiv = (state.ch1.amp * state.opamp.gain) > 2 ? 5.0 : 0.5;
+
+        document.getElementById('ch1VoltsDiv').value = state.ch1.voltsDiv;
+        document.getElementById('ch2VoltsDiv').value = state.ch2.voltsDiv;
+      });
+
+      document.getElementById('opampEnable').checked = true;
+      syncSignalPanel();
+      draw();
+    }
+
+    window.onload = initEvents;
+  </script>
+</body>
+</html>
