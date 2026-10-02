@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DS-2026 Virtual Scope & Op-Amp Lab</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        scopeBg: '#0b0f19',
+                        scopeGrid: '#1e293b',
+                        ch1Yellow: '#f59e0b',
+                        ch2Cyan: '#06b6d4',
+                        scopeGreen: '#10b981'
+                    },
+                    fontFamily: {
+                        mono: ['"Share Tech Mono"', 'monospace'],
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        /* Custom range slider styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: #1e293b;
+            border-radius: 4px;
+            height: 6px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        .ch1-slider::-webkit-slider-thumb {
+            background: #f59e0b !important;
+            box-shadow: 0 0 8px rgba(245, 158, 11, 0.6) !important;
+        }
+        .ch2-slider::-webkit-slider-thumb {
+            background: #06b6d4 !important;
+            box-shadow: 0 0 8px rgba(6, 182, 212, 0.6) !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex flex-col select-none overflow-x-hidden">
+
+    <!-- Navigation Header -->
+    <header class="bg-slate-900 border-b border-slate-800 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-lg z-20">
+        <div class="flex items-center gap-3">
+            <div class="bg-gradient-to-tr from-cyan-600 to-amber-500 p-2 rounded-xl shadow-md shadow-cyan-500/20">
+                <i class="fa-solid fa-wave-square text-slate-950 text-xl font-black"></i>
+            </div>
+            <div>
+                <h1 class="text-base font-bold tracking-wide flex items-center gap-2">
+                    DS-2026 Virtual Scope & Op-Amp Lab
+                    <span class="text-[10px] uppercase font-mono px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-full">v2.5 Pro</span>
+                </h1>
+                <p class="text-xs text-slate-400">雙頻道數位儲存示波器 & 運算放大器電路模擬系統</p>
+            </div>
+        </div>
+
+        <!-- Global Action Buttons -->
+        <div class="flex items-center gap-2 flex-wrap">
+            <span id="statusIndicator" class="px-2.5 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 shadow-sm">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> TRIG'D
+            </span>
+
+            <button id="btnMotionMode" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 shadow-md shadow-indigo-600/20">
+                <i id="motionIcon" class="fa-solid fa-lock"></i>
+                <span id="motionText">觸發鎖定 (Trig Lock)</span>
+            </button>
+
+            <button id="btnAutoSet" class="bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 shadow-md shadow-amber-500/20">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> AUTO SET (自動設定)
+            </button>
+
+            <button id="btnRunStop" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold px-3.5 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 shadow-md shadow-emerald-600/20">
+                <i id="runStopIcon" class="fa-solid fa-pause"></i>
+                <span id="runStopText">RUN</span>
+            </button>
+
+            <button id="btnAudioToggle" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 shadow-sm">
+                <i id="audioIcon" class="fa-solid fa-volume-xmark text-slate-400"></i>
+                <span>聲音監聽</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 p-3 max-w-[1920px] mx-auto w-full">
+
+        <!-- LEFT: Oscilloscope Screen & Measurements (7 Cols on large screen) -->
+        <section class="lg:col-span-7 flex flex-col gap-3">
+            
+            <!-- Scope Screen Container -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-2.5 shadow-xl flex flex-col relative overflow-hidden group">
+                
+                <!-- On-Screen HUD Overlay Bar -->
+                <div class="flex items-center justify-between text-xs font-mono px-3 py-1.5 bg-slate-950/80 border border-slate-800 rounded-xl mb-2 text-slate-300 backdrop-blur">
+                    <div class="flex items-center gap-4">
+                        <span class="flex items-center gap-1 text-amber-400 font-bold">
+                            <i class="fa-solid fa-circle text-[8px]"></i> CH1: <span id="topVoltsDivCH1">100 mV/div</span>
+                        </span>
+                        <span class="flex items-center gap-1 text-cyan-400 font-bold">
+                            <i class="fa-solid fa-circle text-[8px]"></i> CH2: <span id="topVoltsDivCH2">1.00 V/div</span>
+                        </span>
+                        <span class="flex items-center gap-1 text-emerald-400 font-bold">
+                            <i class="fa-solid fa-clock text-[10px]"></i> M: <span id="topTimeDivText">1.00 ms/div</span>
+                        </span>
+                    </div>
+
+                    <div class="flex items-center gap-3 text-slate-400">
+                        <span>Trig: <span id="topTrigModeText" class="text-amber-400">AUTO</span></span>
+                        <span>Level: <span id="topTrigLevelText" class="text-slate-200">0.00 V</span></span>
+                        <span id="topTrigSlopeText" class="text-emerald-400">⚡ Rising</span>
+                    </div>
+                </div>
+
+                <!-- Canvas Wrapper -->
+                <div class="relative w-full aspect-[16/10] sm:aspect-[16/9] bg-slate-950 rounded-xl overflow-hidden border border-slate-800/80 shadow-inner">
+                    <canvas id="scopeCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+                </div>
+
+                <!-- Live Measurements Drawer -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono mt-2 pt-2 border-t border-slate-800">
+                    <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800/80 flex flex-col">
+                        <span class="text-slate-500 text-[10px]">CH1 Vpp / Vrms</span>
+                        <span id="measCH1" class="text-amber-400 font-bold">0.00 V / 0.00 V</span>
+                    </div>
+                    <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800/80 flex flex-col">
+                        <span class="text-slate-500 text-[10px]">CH2 Vpp / Vrms</span>
+                        <span id="measCH2" class="text-cyan-400 font-bold">0.00 V / 0.00 V</span>
+                    </div>
+                    <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800/80 flex flex-col">
+                        <span class="text-slate-500 text-[10px]">頻率 (Freq)</span>
+                        <span id="measFreq" class="text-emerald-400 font-bold">1.00 kHz</span>
+                    </div>
+                    <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800/80 flex flex-col">
+                        <span class="text-slate-500 text-[10px]">週期 (Period)</span>
+                        <span id="measPeriod" class="text-slate-200 font-bold">1.00 ms</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scenario Presets Bar -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-md flex items-center justify-between gap-2 overflow-x-auto">
+                <span class="text-xs font-bold text-slate-400 flex items-center gap-1.5 shrink-0">
+                    <i class="fa-solid fa-bookmark text-amber-500"></i> 快速模擬情境:
+                </span>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button data-preset="dual_sine" class="preset-btn bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-2.5 py-1 rounded-lg text-slate-300 transition-all">
+                        雙頻道微幅正弦波
+                    </button>
+                    <button data-preset="opamp_io" class="preset-btn bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-2.5 py-1 rounded-lg text-slate-300 transition-all">
+                        Op-Amp 同相放大 (50mV → 500mV)
+                    </button>
+                    <button data-preset="opamp_clip" class="preset-btn bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-2.5 py-1 rounded-lg text-slate-300 transition-all">
+                        飽和削頂 (Clipping Distortion)
+                    </button>
+                    <button data-preset="phase_diff" class="preset-btn bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-2.5 py-1 rounded-lg text-slate-300 transition-all">
+                        方波/鋸齒波對比
+                    </button>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- RIGHT: Signal Source, Op-Amp Circuit & Scope Controls (5 Cols) -->
+        <section class="lg:col-span-5 flex flex-col gap-3">
+
+            <!-- 1. Signal Source Controls (CH1 / CH2 Generator) -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-md flex flex-col gap-3">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <h2 class="text-xs font-bold text-slate-200 flex items-center gap-2">
+                        <i class="fa-solid fa-bolt text-amber-400"></i> 信號源輸入設定 (Signal Source Input)
+                    </h2>
+                    
+                    <!-- Channel Selector Tabs -->
+                    <div class="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800 gap-1">
+                        <button id="tabSrcCH1" class="px-2.5 py-0.5 rounded text-xs font-bold bg-amber-500 text-slate-950 transition-all">
+                            CH 1
+                        </button>
+                        <button id="tabSrcCH2" class="px-2.5 py-0.5 rounded text-xs font-bold text-slate-400 hover:text-white transition-all">
+                            CH 2
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Signal Settings Form -->
+                <div class="flex flex-col gap-3">
+                    <div class="flex items-center justify-between">
+                        <span id="activeSrcTitle" class="text-xs font-bold text-amber-400">信號源 1 (CH1 黃色)</span>
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input id="activeChEnable" type="checkbox" checked class="sr-only peer">
+                            <div class="w-8 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500 relative"></div>
+                            <span class="ml-2 text-xs text-slate-300">啟用顯示</span>
+                        </label>
+                    </div>
+
+                    <!-- Amplitude Vpp -->
+                    <div class="flex flex-col gap-1 text-xs">
+                        <div class="flex justify-between items-center text-slate-300">
+                            <span>輸出峰對峰電壓 (Vpp Amplitude)</span>
+                            <div class="flex items-center gap-1 font-mono">
+                                <input id="numVoltage" type="number" step="1" value="500" class="w-20 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-amber-400 text-right text-xs">
+                                <select id="voltageUnit" class="bg-slate-950 border border-slate-700 rounded px-1 py-0.5 text-xs text-slate-300 font-bold">
+                                    <option value="mV">mV (毫伏)</option>
+                                    <option value="V">V (伏特)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <input id="inputVoltage" type="range" min="1" max="1000" value="500" class="ch1-slider w-full">
+                    </div>
+
+                    <!-- Frequency -->
+                    <div class="flex flex-col gap-1 text-xs">
+                        <div class="flex justify-between items-center text-slate-300">
+                            <span>信號頻率 (Frequency)</span>
+                            <div class="flex items-center gap-1 font-mono">
+                                <input id="numFreq" type="number" step="10" value="1000" class="w-20 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-emerald-400 text-right text-xs">
+                                <span class="text-slate-400">Hz</span>
+                            </div>
+                        </div>
+                        <input id="inputFreq" type="range" min="10" max="10000" step="10" value="1000" class="ch1-slider w-full">
+                    </div>
+
+                    <!-- Waveform Type & Offset -->
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                            <label class="block text-slate-400 mb-1">波形種類</label>
+                            <select id="waveType" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-slate-200">
+                                <option value="sine">正弦波 (Sine)</option>
+                                <option value="square">方波 (Square)</option>
+                                <option value="triangle">三角波 (Triangle)</option>
+                                <option value="sawtooth">鋸齒波 (Sawtooth)</option>
+                                <option value="pulse">脈衝波 (Pulse)</option>
+                                <option value="ecg">心電圖 (ECG)</option>
+                                <option value="noise">雜訊 (Noise)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">直流偏壓 (DC Offset / V)</label>
+                            <input id="inputOffset" type="number" step="0.1" value="0.0" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-slate-200 font-mono text-center">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Operational Amplifier Circuit Simulator Controls -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-md flex flex-col gap-3">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <h2 class="text-xs font-bold text-slate-200 flex items-center gap-2">
+                        <i class="fa-solid fa-microchip text-cyan-400"></i> 運算放大器電路 (CH1 輸入 → Op-Amp → CH2 輸出)
+                    </h2>
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input id="opAmpEnable" type="checkbox" class="sr-only peer">
+                        <div class="w-8 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-cyan-500 relative"></div>
+                        <span class="ml-2 text-xs text-slate-300">啟用電路</span>
+                    </label>
+                </div>
+
+                <div id="opAmpControls" class="flex flex-col gap-3 transition-opacity duration-200 opacity-50 pointer-events-none">
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                            <label class="block text-slate-400 mb-1">放大組態 (Op-Mode)</label>
+                            <select id="opAmpMode" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-slate-200">
+                                <option value="non_inverting">同相放大器 (Non-Inverting)</option>
+                                <option value="inverting">反相放大器 (Inverting - 180°反相)</option>
+                                <option value="comparator">比較器 (Comparator)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">工作電源軌 (Power Supply Rails)</label>
+                            <select id="opAmpPowerRail" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-cyan-400 font-mono">
+                                <option value="12">±12V Rails</option>
+                                <option value="15">±15V Rails</option>
+                                <option value="5">±5V Rails</option>
+                                <option value="single_5">+5V / 0V Single Supply</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Gain Slider & Number Input -->
+                    <div class="flex flex-col gap-1 text-xs">
+                        <div class="flex justify-between items-center text-slate-300">
+                            <span>增益倍率 (Voltage Gain A_v)</span>
+                            <div class="flex items-center gap-1 font-mono">
+                                <input id="numOpAmpGain" type="number" step="0.5" min="0.1" max="100" value="10.0" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-cyan-400 text-right text-xs">
+                                <span class="text-slate-400">倍</span>
+                            </div>
+                        </div>
+                        <input id="opAmpGain" type="range" min="0.1" max="50" step="0.5" value="10.0" class="ch2-slider w-full">
+                    </div>
+
+                    <!-- Slew Rate Control -->
+                    <div class="flex flex-col gap-1 text-xs">
+                        <div class="flex justify-between items-center text-slate-300">
+                            <span>轉換速率限制 (Slew Rate)</span>
+                            <span id="slewRateVal" class="font-mono text-cyan-400">10.0 V/µs</span>
+                        </div>
+                        <input id="opAmpSlewRate" type="range" min="0.5" max="20" step="0.5" value="10" class="ch2-slider w-full">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Scope Channel & Timebase Controls -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-md flex flex-col gap-3">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <h2 class="text-xs font-bold text-slate-200 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-emerald-400"></i> 示波器頻道刻度 & 時間軸控制
+                    </h2>
+                </div>
+
+                <!-- CH1 & CH2 Vertical Scale Controls -->
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <!-- CH1 Vertical -->
+                    <div class="bg-slate-950/70 p-2 rounded-xl border border-amber-500/30 flex flex-col gap-2">
+                        <span class="font-bold text-amber-400 flex items-center gap-1">
+                            <i class="fa-solid fa-circle text-[8px]"></i> CH1 垂直刻度
+                        </span>
+                        <div>
+                            <label class="block text-slate-400 text-[10px] mb-0.5">Volts/Div</label>
+                            <select id="voltsDivSelectCH1" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-slate-200 font-mono">
+                                <option value="0.001">1 mV/div</option>
+                                <option value="0.005">5 mV/div</option>
+                                <option value="0.01">10 mV/div</option>
+                                <option value="0.05">50 mV/div</option>
+                                <option value="0.1" selected>100 mV/div</option>
+                                <option value="0.2">200 mV/div</option>
+                                <option value="0.5">500 mV/div</option>
+                                <option value="1.0">1.00 V/div</option>
+                                <option value="2.0">2.00 V/div</option>
+                                <option value="5.0">5.00 V/div</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 text-[10px] mb-0.5">垂直位置 (Y-Shift)</label>
+                            <input id="yOffsetCH1" type="range" min="-4" max="4" step="0.1" value="0" class="ch1-slider w-full">
+                        </div>
+                    </div>
+
+                    <!-- CH2 Vertical -->
+                    <div class="bg-slate-950/70 p-2 rounded-xl border border-cyan-500/30 flex flex-col gap-2">
+                        <span class="font-bold text-cyan-400 flex items-center gap-1">
+                            <i class="fa-solid fa-circle text-[8px]"></i> CH2 垂直刻度
+                        </span>
+                        <div>
+                            <label class="block text-slate-400 text-[10px] mb-0.5">Volts/Div</label>
+                            <select id="voltsDivSelectCH2" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-slate-200 font-mono">
+                                <option value="0.01">10 mV/div</option>
+                                <option value="0.05">50 mV/div</option>
+                                <option value="0.1">100 mV/div</option>
+                                <option value="0.5">500 mV/div</option>
+                                <option value="1.0" selected>1.00 V/div</option>
+                                <option value="2.0">2.00 V/div</option>
+                                <option value="5.0">5.00 V/div</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 text-[10px] mb-0.5">垂直位置 (Y-Shift)</label>
+                            <input id="yOffsetCH2" type="range" min="-4" max="4" step="0.1" value="0" class="ch2-slider w-full">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timebase & Trigger Controls -->
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <!-- Horizontal Timebase -->
+                    <div class="bg-slate-950/70 p-2 rounded-xl border border-slate-800 flex flex-col gap-2">
+                        <span class="font-bold text-emerald-400 flex items-center gap-1">
+                            <i class="fa-solid fa-clock"></i> 時間軸 (Timebase)
+                        </span>
+                        <div>
+                            <label class="block text-slate-400 text-[10px] mb-0.5">Time/Div</label>
+                            <select id="timeDivSelect" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-slate-200 font-mono">
+                                <option value="0.00001">10 µs/div</option>
+                                <option value="0.00005">50 µs/div</option>
+                                <option value="0.0001">100 µs/div</option>
+                                <option value="0.0005">500 µs/div</option>
+                                <option value="0.001" selected>1.00 ms/div</option>
+                                <option value="0.002">2.00 ms/div</option>
+                                <option value="0.005">5.00 ms/div</option>
+                                <option value="0.01">10.0 ms/div</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 text-[10px] mb-0.5">水平位移 (X-Pos)</label>
+                            <input id="xOffset" type="range" min="-5" max="5" step="0.1" value="0" class="w-full">
+                        </div>
+                    </div>
+
+                    <!-- Trigger Controls -->
+                    <div class="bg-slate-950/70 p-2 rounded-xl border border-slate-800 flex flex-col gap-2">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-amber-400 flex items-center gap-1">
+                                <i class="fa-solid fa-crosshairs"></i> 觸發 (Trigger)
+                            </span>
+                            <button id="btnTrigSlope" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-200 px-1.5 py-0.5 rounded border border-slate-700">
+                                ⚡ Rising
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-1">
+                            <div>
+                                <label class="block text-slate-400 text-[10px] mb-0.5">觸發源</label>
+                                <select id="trigSourceSelect" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs">
+                                    <option value="ch1">CH1</option>
+                                    <option value="ch2">CH2</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-slate-400 text-[10px] mb-0.5">模式</label>
+                                <select id="trigModeSelect" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs">
+                                    <option value="auto">AUTO</option>
+                                    <option value="norm">NORM</option>
+                                    <option value="single">SINGLE</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center text-[10px]">
+                                <span class="text-slate-400">觸發準位 Level</span>
+                                <span id="trigLevelVal" class="font-mono text-amber-400">0.0 V</span>
+                            </div>
+                            <input id="trigLevel" type="range" min="-10" max="10" step="0.1" value="0" class="w-full">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Persistence Slider -->
+                <div class="flex items-center justify-between text-xs pt-1 border-t border-slate-800">
+                    <span class="text-slate-400">螢光殘影 (Persistence)</span>
+                    <input id="persistence" type="range" min="0.05" max="0.95" step="0.05" value="0.3" class="w-32">
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        const state = {
+            activeTab: 'ch1', // 'ch1' or 'ch2'
+
+            ch1: {
+                enabled: true,
+                vpp: 0.5,           // Peak-to-Peak Voltage in Volts (0.5V = 500mV)
+                voltageUnit: 'mV',  // 'mV' or 'V'
+                frequency: 1000.0,  // Hz
+                waveType: 'sine',   // sine, square, triangle, sawtooth, pulse, ecg, noise
+                dcOffset: 0.0,      // Volts
+                voltsPerDiv: 0.1,   // V/div
+                yPosition: 0.0      // div units shift
+            },
+
+            ch2: {
+                enabled: true,
+                vpp: 5.0,
+                voltageUnit: 'V',
+                frequency: 1000.0,
+                waveType: 'sine',
+                dcOffset: 0.0,
+                voltsPerDiv: 1.0,
+                yPosition: 0.0
+            },
+
+            // Op-Amp Parameters
+            opAmpEnabled: false,
+            opAmpMode: 'non_inverting', // 'non_inverting', 'inverting', 'comparator'
+            opAmpGain: 10.0,
+            opAmpPowerRail: '12',       // '12', '15', '5', 'single_5'
+            opAmpSlewRate: 10.0,
+
+            // Scope Timebase
+            timePerDiv: 0.001,  // sec/div
+            xPosition: 0.0,     // div shift
+            persistence: 0.3,
+
+            // Trigger System & Motion
+            trigSource: 'ch1',
+            trigMode: 'auto',   // 'auto', 'norm', 'single'
+            trigLevel: 0.0,
+            trigSlope: 'rising', // 'rising', 'falling'
+            isTriggered: false,
+            motionMode: 'lock', // 'lock' (Trig lock) or 'roll' (Continuous motion)
+            sweepBeamX: 0,
+
+            isRunning: true,
+            audioEnabled: false,
+            phaseShiftCH1: 0,
+            phaseShiftCH2: 0
+        };
+
+        const canvas = document.getElementById('scopeCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Audio Synthesizer Node Handles
+        let audioCtx = null;
+        let oscNode = null;
+        let gainNode = null;
+
+        // UI Element References
+        const persistenceSlider = document.getElementById('persistence');
+        const btnMotionMode = document.getElementById('btnMotionMode');
+        const motionIcon = document.getElementById('motionIcon');
+        const motionText = document.getElementById('motionText');
+
+        const tabSrcCH1 = document.getElementById('tabSrcCH1');
+        const tabSrcCH2 = document.getElementById('tabSrcCH2');
+        const activeSrcTitle = document.getElementById('activeSrcTitle');
+        const activeChEnable = document.getElementById('activeChEnable');
+
+        const inputVoltage = document.getElementById('inputVoltage');
+        const numVoltage = document.getElementById('numVoltage');
+        const voltageUnitSelect = document.getElementById('voltageUnit');
+        const inputFreq = document.getElementById('inputFreq');
+        const numFreq = document.getElementById('numFreq');
+        const waveTypeSelect = document.getElementById('waveType');
+        const inputOffset = document.getElementById('inputOffset');
+
+        const opAmpEnableCheckbox = document.getElementById('opAmpEnable');
+        const opAmpControls = document.getElementById('opAmpControls');
+        const opAmpModeSelect = document.getElementById('opAmpMode');
+        const opAmpGainSlider = document.getElementById('opAmpGain');
+        const numOpAmpGain = document.getElementById('numOpAmpGain');
+        const opAmpPowerRailSelect = document.getElementById('opAmpPowerRail');
+        const opAmpSlewRateSlider = document.getElementById('opAmpSlewRate');
+        const slewRateVal = document.getElementById('slewRateVal');
+
+        const voltsDivSelectCH1 = document.getElementById('voltsDivSelectCH1');
+        const voltsDivSelectCH2 = document.getElementById('voltsDivSelectCH2');
+        const timeDivSelect = document.getElementById('timeDivSelect');
+        const yOffsetCH1 = document.getElementById('yOffsetCH1');
+        const yOffsetCH2 = document.getElementById('yOffsetCH2');
+        const xOffsetSlider = document.getElementById('xOffset');
+        const trigLevelSlider = document.getElementById('trigLevel');
+        const trigSourceSelect = document.getElementById('trigSourceSelect');
+        const trigModeSelect = document.getElementById('trigModeSelect');
+        const btnTrigSlope = document.getElementById('btnTrigSlope');
+        const trigLevelVal = document.getElementById('trigLevelVal');
+
+        const btnAutoSet = document.getElementById('btnAutoSet');
+        const btnRunStop = document.getElementById('btnRunStop');
+        const runStopIcon = document.getElementById('runStopIcon');
+        const runStopText = document.getElementById('runStopText');
+        const btnAudioToggle = document.getElementById('btnAudioToggle');
+        const audioIcon = document.getElementById('audioIcon');
+
+        const topVoltsDivCH1 = document.getElementById('topVoltsDivCH1');
+        const topVoltsDivCH2 = document.getElementById('topVoltsDivCH2');
+        const topTimeDivText = document.getElementById('topTimeDivText');
+        const topTrigLevelText = document.getElementById('topTrigLevelText');
+        const topTrigSlopeText = document.getElementById('topTrigSlopeText');
+        const topTrigModeText = document.getElementById('topTrigModeText');
+        const statusIndicator = document.getElementById('statusIndicator');
+
+        const measCH1 = document.getElementById('measCH1');
+        const measCH2 = document.getElementById('measCH2');
+        const measFreq = document.getElementById('measFreq');
+        const measPeriod = document.getElementById('measPeriod');
+
+        const HORIZONTAL_DIVS = 10;
+        const VERTICAL_DIVS = 8;
+
+        function formatVoltage(v) {
+            if (Math.abs(v) < 0.00099) return (v * 1000000).toFixed(0) + ' µV';
+            if (Math.abs(v) < 0.999) return (v * 1000).toFixed(1) + ' mV';
+            return v.toFixed(2) + ' V';
+        }
+
+        function formatVoltsDiv(vPerDiv) {
+            if (vPerDiv < 1.0) return (vPerDiv * 1000).toFixed(0) + ' mV/div';
+            return vPerDiv.toFixed(2) + ' V/div';
+        }
+
+        function formatTimeDivValue(seconds) {
+            if (seconds < 0.000001) return (seconds * 1000000000).toFixed(0) + ' ns';
+            if (seconds < 0.001) return (seconds * 1000000).toFixed(0) + ' µs';
+            if (seconds < 1.0) return (seconds * 1000).toFixed(2) + ' ms';
+            return seconds.toFixed(2) + ' s';
+        }
+
+        function resizeCanvas() {
+            if (!canvas) return;
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width * (window.devicePixelRatio || 1);
+            canvas.height = rect.height * (window.devicePixelRatio || 1);
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function getRawWaveformValue(type, phase) {
+            const p = (phase % 1 + 1) % 1;
+            switch (type) {
+                case 'sine': return Math.sin(p * 2 * Math.PI);
+                case 'square': return p < 0.5 ? 1.0 : -1.0;
+                case 'triangle': return p < 0.5 ? (4 * p - 1) : (3 - 4 * p);
+                case 'sawtooth': return 2 * p - 1;
+                case 'pulse': return p < 0.2 ? 1.0 : -1.0;
+                case 'ecg':
+                    if (p < 0.2) return 0;
+                    if (p < 0.35) return 1.0 * Math.sin((p - 0.2) / 0.15 * Math.PI);
+                    return 0;
+                case 'noise': return (Math.random() * 2 - 1);
+                default: return Math.sin(p * 2 * Math.PI);
+            }
+        }
+
+        function getChannelVoltage(chKey, t) {
+            const ch = state[chKey];
+            if (!ch.enabled) return 0;
+
+            // If Op-Amp is enabled and processing CH2, calculate CH1 input through Op-Amp circuit
+            if (chKey === 'ch2' && state.opAmpEnabled) {
+                const vIn = getChannelVoltage('ch1', t);
+                let vOut = 0;
+
+                if (state.opAmpMode === 'non_inverting') {
+                    vOut = vIn * state.opAmpGain;
+                } else if (state.opAmpMode === 'inverting') {
+                    vOut = -vIn * state.opAmpGain;
+                } else if (state.opAmpMode === 'comparator') {
+                    vOut = vIn >= 0 ? 12 : -12;
+                }
+
+                // Apply Power Rail Saturation Clipping Distortion
+                let vMax = 12, vMin = -12;
+                if (state.opAmpPowerRail === '15') { vMax = 15; vMin = -15; }
+                else if (state.opAmpPowerRail === '5') { vMax = 5; vMin = -5; }
+                else if (state.opAmpPowerRail === 'single_5') { vMax = 5; vMin = 0; }
+
+                if (vOut > vMax) vOut = vMax;
+                if (vOut < vMin) vOut = vMin;
+
+                return vOut;
+            }
+
+            const phase = t * ch.frequency + (chKey === 'ch1' ? state.phaseShiftCH1 : state.phaseShiftCH2);
+            return getRawWaveformValue(ch.waveType, phase) * (ch.vpp / 2.0) + ch.dcOffset;
+        }
+
+        function drawGrid() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const dx = w / HORIZONTAL_DIVS;
+            const dy = h / VERTICAL_DIVS;
+
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+
+            for (let i = 0; i <= HORIZONTAL_DIVS; i++) {
+                const x = Math.floor(i * dx);
+                ctx.moveTo(x, 0); ctx.lineTo(x, h);
+            }
+            for (let j = 0; j <= VERTICAL_DIVS; j++) {
+                const y = Math.floor(j * dy);
+                ctx.moveTo(0, y); ctx.lineTo(w, y);
+            }
+            ctx.stroke();
+
+            // Center axes crosshair
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(0, Math.floor(h / 2)); ctx.lineTo(w, Math.floor(h / 2));
+            ctx.moveTo(Math.floor(w / 2), 0); ctx.lineTo(Math.floor(w / 2), h);
+            ctx.stroke();
+
+            // Y-Axis Voltage Scale Labels
+            ctx.save();
+            ctx.font = '11px "Share Tech Mono", monospace';
+            const activeVoltsDiv = state.ch1.enabled ? state.ch1.voltsPerDiv : state.ch2.voltsPerDiv;
+            const yPosOffset = state.ch1.enabled ? state.ch1.yPosition : state.ch2.yPosition;
+
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            for (let j = 0; j <= VERTICAL_DIVS; j++) {
+                const y = j * dy;
+                const divFromCenter = (VERTICAL_DIVS / 2) - j;
+                const voltVal = (divFromCenter + yPosOffset) * activeVoltsDiv;
+
+                let label = formatVoltage(voltVal);
+                const textY = Math.min(Math.max(y, 14), h - 14);
+
+                const txtWidth = ctx.measureText(label).width;
+                ctx.fillStyle = 'rgba(11, 15, 25, 0.85)';
+                ctx.fillRect(6, textY - 8, txtWidth + 8, 16);
+
+                ctx.fillStyle = state.ch1.enabled ? '#f59e0b' : '#06b6d4';
+                ctx.fillText(label, 10, textY);
+            }
+
+            // X-Axis Time Scale Labels
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            for (let i = 0; i <= HORIZONTAL_DIVS; i++) {
+                const x = i * dx;
+                const timeVal = i * state.timePerDiv;
+                const timeLabel = formatTimeDivValue(timeVal);
+
+                const textX = Math.min(Math.max(x, 28), w - 28);
+                const txtWidth = ctx.measureText(timeLabel).width;
+
+                ctx.fillStyle = 'rgba(11, 15, 25, 0.85)';
+                ctx.fillRect(textX - txtWidth / 2 - 4, h - 20, txtWidth + 8, 16);
+
+                ctx.fillStyle = '#10b981';
+                ctx.fillText(timeLabel, textX, h - 5);
+            }
+
+            ctx.restore();
+
+            // Trigger Level Reference Line
+            const trigCh = state[state.trigSource];
+            if (trigCh && trigCh.enabled) {
+                const pixelsPerVolt = (h / VERTICAL_DIVS) / trigCh.voltsPerDiv;
+                const centerY = h / 2 - (trigCh.yPosition * (h / VERTICAL_DIVS));
+                const trigY = centerY - (state.trigLevel * pixelsPerVolt);
+
+                if (trigY >= 0 && trigY <= h) {
+                    ctx.save();
+                    ctx.setLineDash([4, 4]);
+                    ctx.strokeStyle = state.trigSource === 'ch1' ? '#f59e0b88' : '#06b6d488';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(0, trigY);
+                    ctx.lineTo(w, trigY);
+                    ctx.stroke();
+
+                    ctx.fillStyle = state.trigSource === 'ch1' ? '#f59e0b' : '#06b6d4';
+                    ctx.beginPath();
+                    ctx.moveTo(w - 10, trigY - 4);
+                    ctx.lineTo(w, trigY);
+                    ctx.lineTo(w - 10, trigY + 4);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+        }
+
+        function drawWaveform(chKey, color, totalTime, points, trigTimeOffset) {
+            const ch = state[chKey];
+            if (!ch.enabled) return;
+
+            const w = canvas.width;
+            const h = canvas.height;
+            const pixelsPerDivY = h / VERTICAL_DIVS;
+            const pixelsPerVolt = pixelsPerDivY / ch.voltsPerDiv;
+            const centerY = h / 2 - (ch.yPosition * pixelsPerDivY);
+
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2.5;
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+
+            let maxV = -Infinity, minV = Infinity;
+
+            for (let i = 0; i < points; i++) {
+                const xFraction = i / (points - 1);
+                const xPx = xFraction * w;
+
+                const t = (xFraction * totalTime) + trigTimeOffset - (state.xPosition * state.timePerDiv);
+                let v = getChannelVoltage(chKey, t);
+
+                if (v > maxV) maxV = v;
+                if (v < minV) minV = v;
+
+                const yPx = centerY - (v * pixelsPerVolt);
+
+                if (i === 0) {
+                    ctx.moveTo(xPx, yPx);
+                } else {
+                    ctx.lineTo(xPx, yPx);
+                }
+            }
+            ctx.stroke();
+            ctx.restore();
+
+            // Update Measurements in HUD
+            const vppMeasured = (maxV > -Infinity && minV < Infinity) ? (maxV - minV) : 0;
+            const vrmsMeasured = vppMeasured / (2 * Math.SQRT2);
+
+            if (chKey === 'ch1' && measCH1) {
+                measCH1.innerText = `${formatVoltage(vppMeasured)} / ${formatVoltage(vrmsMeasured)}`;
+            } else if (chKey === 'ch2' && measCH2) {
+                measCH2.innerText = `${formatVoltage(vppMeasured)} / ${formatVoltage(vrmsMeasured)}`;
+            }
+
+            if (chKey === state.trigSource) {
+                if (measFreq) measFreq.innerText = ch.frequency >= 1000 ? (ch.frequency / 1000).toFixed(2) + ' kHz' : ch.frequency.toFixed(1) + ' Hz';
+                if (measPeriod) measPeriod.innerText = formatTimeDivValue(1.0 / ch.frequency);
+            }
+        }
+
+        function calculateTriggerTimeOffset(totalTime) {
+            const trigChKey = state.trigSource;
+            const trigCh = state[trigChKey];
+            if (!trigCh.enabled) return 0;
+
+            const freq = trigCh.frequency;
+            const period = 1.0 / freq;
+            const searchSamples = 200;
+            const dt = period / searchSamples;
+            const level = state.trigLevel;
+            const isRising = state.trigSlope === 'rising';
+
+            let trigFound = false;
+            let exactTrigTime = 0;
+
+            for (let i = 0; i < searchSamples * 2; i++) {
+                const t1 = i * dt;
+                const t2 = (i + 1) * dt;
+                const v1 = getChannelVoltage(trigChKey, t1);
+                const v2 = getChannelVoltage(trigChKey, t2);
+
+                const conditionMet = isRising 
+                    ? (v1 <= level && v2 > level)
+                    : (v1 >= level && v2 < level);
+
+                if (conditionMet) {
+                    const fraction = (level - v1) / (v2 - v1 || 0.0001);
+                    exactTrigTime = t1 + fraction * dt;
+                    trigFound = true;
+                    break;
+                }
+            }
+
+            state.isTriggered = trigFound;
+            return trigFound ? exactTrigTime : 0;
+        }
+
+        let lastTimestamp = 0;
+        function render(timestamp) {
+            const dt = (timestamp - lastTimestamp) / 1000 || 0;
+            lastTimestamp = timestamp;
+
+            if (state.isRunning) {
+                state.phaseShiftCH1 += dt * state.ch1.frequency;
+                state.phaseShiftCH2 += dt * state.ch2.frequency;
+                state.sweepBeamX = (state.sweepBeamX + dt * 800) % (canvas.width || 800);
+            }
+
+            const totalTime = 10 * state.timePerDiv;
+            const trigOffset = calculateTriggerTimeOffset(totalTime);
+
+            // Update Status Badge UI
+            if (statusIndicator) {
+                if (!state.isRunning) {
+                    statusIndicator.innerText = "STOPPED";
+                    statusIndicator.className = "px-2.5 py-1 bg-rose-500/20 text-rose-400 border border-rose-500/40 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 shadow-sm";
+                } else if (state.motionMode === 'roll') {
+                    statusIndicator.innerText = "ROLL (動態)";
+                    statusIndicator.className = "px-2.5 py-1 bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 shadow-sm";
+                } else if (state.isTriggered) {
+                    statusIndicator.innerText = "TRIG'D (鎖定)";
+                    statusIndicator.className = "px-2.5 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 shadow-sm";
+                } else if (state.trigMode === 'auto') {
+                    statusIndicator.innerText = "AUTO";
+                    statusIndicator.className = "px-2.5 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 shadow-sm";
+                } else {
+                    statusIndicator.innerText = "WAIT";
+                    statusIndicator.className = "px-2.5 py-1 bg-slate-800 text-slate-400 border border-slate-700 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 shadow-sm";
+                }
+            }
+
+            if (state.trigMode === 'single' && state.isTriggered && state.isRunning) {
+                state.isRunning = false;
+                if (btnRunStop) {
+                    btnRunStop.className = "bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-bold px-3.5 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 shadow-md shadow-rose-600/20";
+                    if (runStopIcon) runStopIcon.className = "fa-solid fa-play";
+                    if (runStopText) runStopText.innerText = "SINGLE CAP";
+                }
+            }
+
+            const shouldRenderFrame = state.isRunning || !state.isTriggered;
+
+            if (shouldRenderFrame) {
+                ctx.fillStyle = `rgba(11, 15, 25, ${1 - state.persistence})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                drawGrid();
+
+                const points = canvas.width;
+                const trigTimeOffset = (state.motionMode === 'lock' && state.isTriggered) ? trigOffset : 0;
+
+                if (state.ch1.enabled) {
+                    drawWaveform('ch1', '#f59e0b', totalTime, points, trigTimeOffset);
+                }
+                if (state.ch2.enabled) {
+                    drawWaveform('ch2', '#06b6d4', totalTime, points, trigTimeOffset);
+                }
+
+                // Render active sweep beam indicator
+                if (state.isRunning) {
+                    ctx.save();
+                    ctx.strokeStyle = 'rgba(16, 185, 129, 0.4)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(state.sweepBeamX, 0);
+                    ctx.lineTo(state.sweepBeamX, canvas.height);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
+
+            // Sync audio synth frequency if audio monitoring enabled
+            if (state.audioEnabled && oscNode && audioCtx) {
+                const curFreq = state[state.activeTab].frequency;
+                oscNode.frequency.setTargetAtTime(Math.min(Math.max(curFreq, 20), 12000), audioCtx.currentTime, 0.05);
+            }
+
+            requestAnimationFrame(render);
+        }
+
+        function syncUI() {
+            const ch = state[state.activeTab];
+
+            if (activeSrcTitle) {
+                activeSrcTitle.innerText = state.activeTab === 'ch1' ? '信號源 1 (CH1 黃色)' : '信號源 2 (CH2 藍色)';
+                activeSrcTitle.className = state.activeTab === 'ch1' ? 'text-xs font-bold text-amber-400' : 'text-xs font-bold text-cyan-400';
+            }
+            if (activeChEnable) activeChEnable.checked = ch.enabled;
+
+            // Voltage & Unit Display Sync
+            if (voltageUnitSelect) voltageUnitSelect.value = ch.voltageUnit;
+            const dispVoltage = ch.voltageUnit === 'mV' ? ch.vpp * 1000 : ch.vpp;
+            if (numVoltage) numVoltage.value = parseFloat(dispVoltage.toFixed(1));
+            if (inputVoltage) inputVoltage.value = Math.min(1000, dispVoltage);
+
+            if (numFreq) numFreq.value = ch.frequency;
+            if (inputFreq) inputFreq.value = ch.frequency;
+
+            if (waveTypeSelect) waveTypeSelect.value = ch.waveType;
+            if (inputOffset) inputOffset.value = ch.dcOffset;
+
+            // Op-Amp UI state sync
+            if (opAmpEnableCheckbox) opAmpEnableCheckbox.checked = state.opAmpEnabled;
+            if (opAmpControls) {
+                if (state.opAmpEnabled) {
+                    opAmpControls.classList.remove('opacity-50', 'pointer-events-none');
+                } else {
+                    opAmpControls.classList.add('opacity-50', 'pointer-events-none');
+                }
+            }
+            if (opAmpModeSelect) opAmpModeSelect.value = state.opAmpMode;
+            if (opAmpGainSlider) opAmpGainSlider.value = state.opAmpGain;
+            if (numOpAmpGain) numOpAmpGain.value = state.opAmpGain;
+            if (opAmpPowerRailSelect) opAmpPowerRailSelect.value = state.opAmpPowerRail;
+
+            // Scope Div Selects Sync
+            if (voltsDivSelectCH1) voltsDivSelectCH1.value = state.ch1.voltsPerDiv;
+            if (voltsDivSelectCH2) voltsDivSelectCH2.value = state.ch2.voltsPerDiv;
+            if (timeDivSelect) timeDivSelect.value = state.timePerDiv;
+
+            // Top HUD Texts Sync
+            if (topVoltsDivCH1) topVoltsDivCH1.innerText = formatVoltsDiv(state.ch1.voltsPerDiv);
+            if (topVoltsDivCH2) topVoltsDivCH2.innerText = formatVoltsDiv(state.ch2.voltsPerDiv);
+            if (topTimeDivText) topTimeDivText.innerText = formatTimeDivValue(state.timePerDiv) + '/div';
+            if (topTrigLevelText) topTrigLevelText.innerText = formatVoltage(state.trigLevel);
+            if (topTrigModeText) topTrigModeText.innerText = state.trigMode.toUpperCase();
+        }
+
+        if (btnMotionMode) {
+            btnMotionMode.addEventListener('click', () => {
+                if (state.motionMode === 'lock') {
+                    state.motionMode = 'roll';
+                    btnMotionMode.className = "bg-cyan-600 hover:bg-cyan-500 active:scale-95 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 shadow-md shadow-cyan-600/20";
+                    if (motionIcon) motionIcon.className = "fa-solid fa-water";
+                    if (motionText) motionText.innerText = "動態流動 (Live Roll)";
+                } else {
+                    state.motionMode = 'lock';
+                    btnMotionMode.className = "bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 shadow-md shadow-indigo-600/20";
+                    if (motionIcon) motionIcon.className = "fa-solid fa-lock";
+                    if (motionText) motionText.innerText = "觸發鎖定 (Trig Lock)";
+                }
+                syncUI();
+            });
+        }
+
+        if (btnAutoSet) {
+            btnAutoSet.addEventListener('click', () => {
+                const bestTimeDivs = [0.00001, 0.00005, 0.0001, 0.0005, 0.001, 0.002, 0.005, 0.010];
+                const bestVoltsDivs = [0.001, 0.005, 0.01, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0];
+
+                state.ch1.enabled = true;
+                state.ch2.enabled = true;
+
+                const freq = state.ch1.frequency || state.ch2.frequency || 1000;
+                const targetPeriod = 1.0 / freq;
+                const targetTimeDiv = targetPeriod / 3;
+                state.timePerDiv = bestTimeDivs.reduce((prev, curr) => 
+                    Math.abs(curr - targetTimeDiv) < Math.abs(prev - targetTimeDiv) ? curr : prev
+                );
+
+                const targetVDiv1 = (state.ch1.vpp || 0.5) / 4;
+                state.ch1.voltsPerDiv = bestVoltsDivs.reduce((prev, curr) => 
+                    Math.abs(curr - targetVDiv1) < Math.abs(prev - targetVDiv1) ? curr : prev
+                );
+                state.ch1.yPosition = 0;
+
+                const ch2Vpp = state.opAmpEnabled ? state.ch1.vpp * state.opAmpGain : state.ch2.vpp;
+                const targetVDiv2 = (ch2Vpp || 5.0) / 4;
+                state.ch2.voltsPerDiv = bestVoltsDivs.reduce((prev, curr) => 
+                    Math.abs(curr - targetVDiv2) < Math.abs(prev - targetVDiv2) ? curr : prev
+                );
+                state.ch2.yPosition = 0;
+
+                state.xPosition = 0;
+                state.trigLevel = 0;
+                if (trigLevelSlider) trigLevelSlider.value = 0;
+                syncUI();
+            });
+        }
+
+        if (btnAudioToggle) {
+            btnAudioToggle.addEventListener('click', () => {
+                state.audioEnabled = !state.audioEnabled;
+                if (state.audioEnabled) {
+                    if (!audioCtx) {
+                        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                        oscNode = audioCtx.createOscillator();
+                        gainNode = audioCtx.createGain();
+                        oscNode.type = 'sine';
+                        oscNode.frequency.setValueAtTime(state[state.activeTab].frequency, audioCtx.currentTime);
+                        gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                        oscNode.connect(gainNode);
+                        gainNode.connect(audioCtx.destination);
+                        oscNode.start();
+                    } else if (audioCtx.state === 'suspended') {
+                        audioCtx.resume();
+                    }
+                    btnAudioToggle.className = "bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 font-semibold shadow-md shadow-emerald-600/20";
+                    if (audioIcon) audioIcon.className = "fa-solid fa-volume-high text-white";
+                } else {
+                    if (audioCtx) audioCtx.suspend();
+                    btnAudioToggle.className = "bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 shadow-sm";
+                    if (audioIcon) audioIcon.className = "fa-solid fa-volume-xmark text-slate-400";
+                }
+            });
+        }
+
+        if (tabSrcCH1) {
+            tabSrcCH1.addEventListener('click', () => {
+                state.activeTab = 'ch1';
+                tabSrcCH1.className = 'px-2.5 py-0.5 rounded text-xs font-bold bg-amber-500 text-slate-950 transition-all';
+                tabSrcCH2.className = 'px-2.5 py-0.5 rounded text-xs font-bold text-slate-400 hover:text-white transition-all';
+                syncUI();
+            });
+        }
+        if (tabSrcCH2) {
+            tabSrcCH2.addEventListener('click', () => {
+                state.activeTab = 'ch2';
+                tabSrcCH2.className = 'px-2.5 py-0.5 rounded text-xs font-bold bg-cyan-500 text-slate-950 transition-all';
+                tabSrcCH1.className = 'px-2.5 py-0.5 rounded text-xs font-bold text-slate-400 hover:text-white transition-all';
+                syncUI();
+            });
+        }
+
+        if (activeChEnable) activeChEnable.addEventListener('change', (e) => state[state.activeTab].enabled = e.target.checked);
+
+        if (inputVoltage) {
+            inputVoltage.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                if (numVoltage) numVoltage.value = val;
+                state[state.activeTab].vpp = state[state.activeTab].voltageUnit === 'mV' ? val / 1000.0 : val;
+            });
+        }
+        if (numVoltage) {
+            numVoltage.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value) || 0;
+                state[state.activeTab].vpp = state[state.activeTab].voltageUnit === 'mV' ? val / 1000.0 : val;
+                if (inputVoltage) inputVoltage.value = Math.min(1000, val);
+            });
+        }
+        if (voltageUnitSelect) {
+            voltageUnitSelect.addEventListener('change', (e) => {
+                state[state.activeTab].voltageUnit = e.target.value;
+                state[state.activeTab].vpp = e.target.value === 'mV' ? 0.5 : 5.0;
+                syncUI();
+            });
+        }
+
+        if (inputFreq) {
+            inputFreq.addEventListener('input', (e) => {
+                state[state.activeTab].frequency = parseFloat(e.target.value);
+                if (numFreq) numFreq.value = state[state.activeTab].frequency;
+            });
+        }
+        if (numFreq) {
+            numFreq.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value) || 1;
+                state[state.activeTab].frequency = val;
+                if (inputFreq) inputFreq.value = Math.min(10000, val);
+            });
+        }
+        if (waveTypeSelect) waveTypeSelect.addEventListener('change', (e) => state[state.activeTab].waveType = e.target.value);
+        if (inputOffset) inputOffset.addEventListener('input', (e) => state[state.activeTab].dcOffset = parseFloat(e.target.value));
+
+        // Op-Amp Control Listeners
+        if (opAmpEnableCheckbox) opAmpEnableCheckbox.addEventListener('change', (e) => { state.opAmpEnabled = e.target.checked; syncUI(); });
+        if (opAmpModeSelect) opAmpModeSelect.addEventListener('change', (e) => state.opAmpMode = e.target.value);
+        if (opAmpGainSlider) opAmpGainSlider.addEventListener('input', (e) => {
+            state.opAmpGain = parseFloat(e.target.value) || 1;
+            if (numOpAmpGain) numOpAmpGain.value = state.opAmpGain;
+        });
+        if (numOpAmpGain) numOpAmpGain.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value) || 0.1;
+            state.opAmpGain = val;
+            if (opAmpGainSlider) opAmpGainSlider.value = Math.min(50, val);
+        });
+        if (opAmpPowerRailSelect) opAmpPowerRailSelect.addEventListener('change', (e) => state.opAmpPowerRail = e.target.value);
+        if (opAmpSlewRateSlider) opAmpSlewRateSlider.addEventListener('input', (e) => { state.opAmpSlewRate = parseFloat(e.target.value); if (slewRateVal) slewRateVal.innerText = state.opAmpSlewRate.toFixed(1) + ' V/µs'; });
+
+        // Scope Controls
+        if (voltsDivSelectCH1) voltsDivSelectCH1.addEventListener('change', (e) => { state.ch1.voltsPerDiv = parseFloat(e.target.value); syncUI(); });
+        if (voltsDivSelectCH2) voltsDivSelectCH2.addEventListener('change', (e) => { state.ch2.voltsPerDiv = parseFloat(e.target.value); syncUI(); });
+        if (timeDivSelect) timeDivSelect.addEventListener('change', (e) => { state.timePerDiv = parseFloat(e.target.value); syncUI(); });
+        if (yOffsetCH1) yOffsetCH1.addEventListener('input', (e) => state.ch1.yPosition = parseFloat(e.target.value));
+        if (yOffsetCH2) yOffsetCH2.addEventListener('input', (e) => state.ch2.yPosition = parseFloat(e.target.value));
+        if (xOffsetSlider) xOffsetSlider.addEventListener('input', (e) => state.xPosition = parseFloat(e.target.value));
+        if (trigLevelSlider) trigLevelSlider.addEventListener('input', (e) => { 
+            state.trigLevel = parseFloat(e.target.value); 
+            if (trigLevelVal) trigLevelVal.innerText = formatVoltage(state.trigLevel);
+            syncUI(); 
+        });
+        if (trigSourceSelect) trigSourceSelect.addEventListener('change', (e) => state.trigSource = e.target.value);
+        if (trigModeSelect) trigModeSelect.addEventListener('change', (e) => { state.trigMode = e.target.value; syncUI(); });
+
+        if (btnTrigSlope) {
+            btnTrigSlope.addEventListener('click', () => {
+                state.trigSlope = state.trigSlope === 'rising' ? 'falling' : 'rising';
+                btnTrigSlope.innerText = state.trigSlope === 'rising' ? '⚡ Rising' : '📉 Falling';
+                if (topTrigSlopeText) topTrigSlopeText.innerText = state.trigSlope === 'rising' ? '⚡ Rising' : '📉 Falling';
+            });
+        }
+
+        if (btnRunStop) {
+            btnRunStop.addEventListener('click', () => {
+                state.isRunning = !state.isRunning;
+                if (state.isRunning) {
+                    btnRunStop.className = "bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold px-3.5 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 shadow-md shadow-emerald-600/20";
+                    if (runStopIcon) runStopIcon.className = "fa-solid fa-pause";
+                    if (runStopText) runStopText.innerText = "RUN";
+                } else {
+                    btnRunStop.className = "bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-bold px-3.5 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 shadow-md shadow-rose-600/20";
+                    if (runStopIcon) runStopIcon.className = "fa-solid fa-play";
+                    if (runStopText) runStopText.innerText = "STOP";
+                }
+            });
+        }
+
+        if (persistenceSlider) {
+            persistenceSlider.addEventListener('input', (e) => {
+                state.persistence = parseFloat(e.target.value);
+            });
+        }
+
+        // Preset buttons
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const preset = e.target.dataset.preset;
+                if (preset === 'dual_sine') {
+                    state.ch1.enabled = true; state.ch1.vpp = 0.5; state.ch1.voltageUnit = 'mV'; state.ch1.frequency = 1000; state.ch1.waveType = 'sine'; state.ch1.voltsPerDiv = 0.1;
+                    state.ch2.enabled = true; state.ch2.vpp = 5.0; state.ch2.voltageUnit = 'V'; state.ch2.frequency = 1000; state.ch2.waveType = 'sine'; state.ch2.voltsPerDiv = 1.0;
+                    state.opAmpEnabled = false;
+                } else if (preset === 'opamp_io') {
+                    state.ch1.enabled = true; state.ch1.vpp = 0.05; state.ch1.voltageUnit = 'mV'; state.ch1.frequency = 1000; state.ch1.waveType = 'sine'; state.ch1.voltsPerDiv = 0.01;
+                    state.ch2.enabled = true; state.ch2.voltsPerDiv = 0.1;
+                    state.opAmpEnabled = true; state.opAmpMode = 'non_inverting'; state.opAmpGain = 10.0;
+                } else if (preset === 'opamp_clip') {
+                    state.ch1.enabled = true; state.ch1.vpp = 2.0; state.ch1.voltageUnit = 'V'; state.ch1.frequency = 500; state.ch1.waveType = 'sine'; state.ch1.voltsPerDiv = 1.0;
+                    state.ch2.enabled = true; state.ch2.voltsPerDiv = 5.0;
+                    state.opAmpEnabled = true; state.opAmpMode = 'non_inverting'; state.opAmpGain = 15.0; state.opAmpPowerRail = '12';
+                } else if (preset === 'phase_diff') {
+                    state.ch1.enabled = true; state.ch1.vpp = 1.0; state.ch1.voltageUnit = 'V'; state.ch1.frequency = 1000; state.ch1.waveType = 'square'; state.ch1.voltsPerDiv = 0.5;
+                    state.ch2.enabled = true; state.ch2.vpp = 1.0; state.ch2.voltageUnit = 'V'; state.ch2.frequency = 1000; state.ch2.waveType = 'sawtooth'; state.ch2.voltsPerDiv = 0.5;
+                    state.opAmpEnabled = false;
+                }
+                syncUI();
+            });
+        });
+
+        // Initialize application on page load
+        window.onload = () => {
+            resizeCanvas();
+            syncUI();
+            requestAnimationFrame(render);
+        };
+    </script>
+</body>
+</html>
